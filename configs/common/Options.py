@@ -154,6 +154,9 @@ def addNoISAOptions(parser):
     parser.add_argument("--l3_assoc", type=int, default=16)
     parser.add_argument("--cacheline_size", type=int, default=64)
 
+    # Compression option
+    parser.add_argument("--compression", action="store_true")
+
     # Enable Ruby
     parser.add_argument("--ruby", action="store_true")
 
