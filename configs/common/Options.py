@@ -156,6 +156,7 @@ def addNoISAOptions(parser):
 
     # Compression option
     parser.add_argument("--compression", action="store_true")
+    parser.add_argument("--gcp", action="store_true")
 
     # Enable Ruby
     parser.add_argument("--ruby", action="store_true")

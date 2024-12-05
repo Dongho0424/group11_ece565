@@ -73,6 +73,9 @@ def _get_cache_opts(level, options):
         opts['tags'] = CompressedTags()
         opts['sequential_access'] = True
 
+    if level == 'l2' and options.gcp:
+        opts['gcp'] = True
+
     return opts
 
 def config_cache(options, system):
