@@ -1253,8 +1253,8 @@ BaseCache::access(PacketPtr pkt, CacheBlk *&blk, Cycles &lat,
     if (gcp){
         if (blk){ // Block is a hit
             // 1. Check if compressed
-            CompressionBlk* compression_blk = dynamic_cast<CompressionBlk*>(blk)
-            if (compression_blk->isCompressed()) {\
+            CompressionBlk* compression_blk = dynamic_cast<CompressionBlk*>(blk);
+            if (compression_blk->isCompressed()) {
                 // 2. Check if uncompressed can co allocate
                 SuperBlk* super_blk = dynamic_cast<SuperBlk*>(compression_blk->getSectorBlock());
                 if(super_blk->canCoAllocate(compression_blk->getSizeBits())) {
@@ -1268,7 +1268,7 @@ BaseCache::access(PacketPtr pkt, CacheBlk *&blk, Cycles &lat,
                     std::cout << "Avoided Miss" << gcpCounter << std::endl;
                 }
             }
-} 
+        } 
         else {  // Block is a miss
             // Avoided miss
         }
