@@ -102,6 +102,76 @@ CompressedTags::tagsInit()
 }
 
 CacheBlk*
+CompressedTags::accessBlock(const PacketPtr pkt, Cycles &lat)
+{
+    CacheBlk* blk = findBlock(pkt->getAddr(), pkt->isSecure());
+    SectorSubBlk* sub_blk = static_cast<SectorSubBlk*>(blk);
+    SectorBlk* sector_blk = sub_blk->getSectorBlock();
+    CompressionBlk* compressed_blk = static_cast<CompressionBlk*>(sub_blk);
+    const SuperBlk* super_blk = static_cast<SuperBlk*>(sector_blk);
+
+    signed int gcp_factor = 0;
+
+    // Access all tags in parallel, hence one in each way.  The data side
+    // either accesses all blocks in parallel, or one block sequentially on
+    // a hit.  Sequential access with a miss doesn't access data.
+    stats.tagAccesses += allocAssoc;
+    if (sequentialAccess) {
+        if (blk != nullptr) {
+            stats.dataAccesses += 1;
+        }
+    } else {
+        stats.dataAccesses += allocAssoc*numBlocksPerSector;
+    }
+
+    // If a cache hit
+    //여기서 cache hit을 나누면 될듯
+    if (blk != nullptr){
+
+        if (!compressed_blk->isCompressed()){
+            std::cout << ("unpenalized hit");
+        }
+        else if (compressed_blk->isCompressed()&&super_blk->canCoAllocate(compressed_blk->getSizeBits())){
+            gcp_factor ++;
+            std::cout << "penalized hit";
+        }else if (compressed_blk->isCompressed()&&!super_blk->canCoAllocate(compressed_blk->getSizeBits())){
+            std::cout << "avoided miss";
+            gcp_factor --;
+        }
+    }
+    if (blk != nullptr) {
+        // Update number of references to accessed block
+        blk->increaseRefCount();
+
+        // Get block's sector
+        SectorSubBlk* sub_blk = static_cast<SectorSubBlk*>(blk);
+        const SectorBlk* sector_blk = sub_blk->getSectorBlock();
+
+        // Update replacement data of accessed block, which is shared with
+        // the whole sector it belongs to
+        replacementPolicy->touch(sector_blk->replacementData, pkt);
+    }
+    //miss 나누기
+    if ( blk == nullptr ){
+        if ((compressed_blk->getSizeBits() <= (super_blk->getBlkSize() * CHAR_BIT) / super_blk->getCompressionFactor())){
+            gcp_factor --;
+            std::cout << "avodiable miss";
+        }
+    }
+
+    // The tag lookup latency is the same for a hit or a miss
+    lat = lookupLatency;
+
+    return blk;
+}
+
+int
+CompressedTags::getGcpFactor() const
+{
+    return gcp_factor;
+}
+
+CacheBlk*
 CompressedTags::findVictim(Addr addr, const bool is_secure,
                            const std::size_t compressed_size,
                            std::vector<CacheBlk*>& evict_blks)

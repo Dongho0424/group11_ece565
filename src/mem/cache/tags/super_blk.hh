@@ -203,6 +203,13 @@ class SuperBlk : public SectorBlk
      */
     bool canCoAllocate(const std::size_t compressed_size) const;
 
+    /*
+     * Get size, in bits, of this super block's data.
+     *
+     * @return The superblock size.
+     */
+    std::size_t getBlkSize() const;
+
     /**
      * Set block size. Should be called only once, when initializing blocks.
      *

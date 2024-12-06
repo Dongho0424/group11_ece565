@@ -352,6 +352,12 @@ class BaseCache : public ClockedObject
     /** Compression method being used. */
     compression::Base* compressor;
 
+    /** GCP on off */
+    const bool gcp;
+
+    /*GCP Counter*/
+    //int gcpCounter;
+
     /** Prefetcher */
     prefetch::Base *prefetcher;
 

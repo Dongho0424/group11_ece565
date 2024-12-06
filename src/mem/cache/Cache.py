@@ -107,6 +107,7 @@ class BaseCache(ClockedObject):
         "Replacement policy")
 
     compressor = Param.BaseCacheCompressor(NULL, "Cache compressor.")
+    gcp = Param.Bool(False,"Enable the global cache predictor.")
     replace_expansions = Param.Bool(True, "Apply replacement policy to " \
         "decide which blocks should be evicted on a data expansion")
     # When a block passes from uncompressed to compressed, it may become

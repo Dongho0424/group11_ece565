@@ -141,7 +141,7 @@ SectorTags::invalidate(CacheBlk *blk)
 CacheBlk*
 SectorTags::accessBlock(const PacketPtr pkt, Cycles &lat)
 {
-    CacheBlk *blk = findBlock(pkt->getAddr(), pkt->isSecure());
+    CacheBlk* blk = findBlock(pkt->getAddr(), pkt->isSecure());
 
     // Access all tags in parallel, hence one in each way.  The data side
     // either accesses all blocks in parallel, or one block sequentially on
@@ -156,6 +156,7 @@ SectorTags::accessBlock(const PacketPtr pkt, Cycles &lat)
     }
 
     // If a cache hit
+    //여기서 cache hit을 나누면 될듯
     if (blk != nullptr) {
         // Update number of references to accessed block
         blk->increaseRefCount();
@@ -168,6 +169,7 @@ SectorTags::accessBlock(const PacketPtr pkt, Cycles &lat)
         // the whole sector it belongs to
         replacementPolicy->touch(sector_blk->replacementData, pkt);
     }
+    //miss 나누기
 
     // The tag lookup latency is the same for a hit or a miss
     lat = lookupLatency;

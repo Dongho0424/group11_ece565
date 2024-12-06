@@ -67,6 +67,15 @@ def _get_cache_opts(level, options):
     if hasattr(options, prefetcher_attr):
         opts['prefetcher'] = _get_hwp(getattr(options, prefetcher_attr))
 
+
+    if level == "l2":
+        if options.l2_compressor:
+            opts['compressor'] = FPC()
+            opts['tags'] = CompressedTags()
+            opts['sequential_access'] = True
+        if options.gcp:
+            opts['gcp'] = True
+
     return opts
 
 def config_cache(options, system):

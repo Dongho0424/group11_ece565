@@ -84,6 +84,9 @@ BaseCache::BaseCache(const BaseCacheParams &p, unsigned blk_size)
       writeBuffer("write buffer", p.write_buffers, p.mshrs, p.name),
       tags(p.tags),
       compressor(p.compressor),
+      //
+      gcp(p.gcp),
+      //gcpCounter(0),
       prefetcher(p.prefetcher),
       writeAllocator(p.write_allocator),
       writebackClean(p.writeback_clean),
@@ -134,6 +137,8 @@ BaseCache::BaseCache(const BaseCacheParams &p, unsigned blk_size)
         "Compressed cache %s does not have a compression algorithm", name());
     if (compressor)
         compressor->setCache(this);
+    if (gcp && !compressor)
+        fatal("GCP requires a compression algorithm");
 }
 
 BaseCache::~BaseCache()
@@ -1622,12 +1627,27 @@ BaseCache::allocateBlock(const PacketPtr pkt, PacketList &writebacks)
     // compressor is used, the compression/decompression methods are called to
     // calculate the amount of extra cycles needed to read or write compressed
     // blocks.
-    if (compressor && pkt->hasData()) {
-        const auto comp_data = compressor->compress(
-            pkt->getConstPtr<uint64_t>(), compression_lat, decompression_lat);
-        blk_size_bits = comp_data->getSizeBits();
-    }
 
+    //  여기에서 껐다 키면 될듯
+
+    CompressedTags* comp_tags = static_cast<CompressedTags*>(tags);
+
+    std::cout << comp_tags->getGcpFactor();
+
+    if (gcp){
+        if (comp_tags->getGcpFactor() > 0 && compressor && pkt->hasData()) {
+            const auto comp_data = compressor->compress(
+                pkt->getConstPtr<uint64_t>(), compression_lat, decompression_lat);
+            blk_size_bits = comp_data->getSizeBits();
+        }
+    }
+    else {
+        if (compressor && pkt->hasData()) {
+            const auto comp_data = compressor->compress(
+                pkt->getConstPtr<uint64_t>(), compression_lat, decompression_lat);
+            blk_size_bits = comp_data->getSizeBits();
+        }
+    }
     // Find replacement victim
     std::vector<CacheBlk*> evict_blks;
     CacheBlk *victim = tags->findVictim(addr, is_secure, blk_size_bits,

@@ -74,6 +74,8 @@ class CompressedTags : public SectorTags
     std::vector<CompressionBlk> blks;
     /** The cache superblocks. */
     std::vector<SuperBlk> superBlks;
+    /*gcp factor*/
+    int gcp_factor;
 
   public:
     /** Convenience typedef. */
@@ -93,6 +95,23 @@ class CompressedTags : public SectorTags
      * Initialize blocks as SuperBlk and CompressionBlk instances.
      */
     void tagsInit() override;
+
+    /**
+     * Access block and update replacement data. May not succeed, in which
+     * case nullptr is returned. This has all the implications of a cache
+     * access and should only be used as such. Returns the tag lookup latency
+     * as a side effect.
+     *
+     * @param pkt The packet holding the address to find.
+     * @param lat The latency of the tag lookup.
+     * @return Pointer to the cache block if found.
+     */
+    CacheBlk* accessBlock(const PacketPtr pkt, Cycles &lat) override;
+
+    /*
+    * @ return gcpfactor
+    */
+    int getGcpFactor() const;
 
     /**
      * Find replacement victim based on address. Checks if data can be co-
