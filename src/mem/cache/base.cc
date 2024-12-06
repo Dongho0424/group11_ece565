@@ -139,6 +139,8 @@ BaseCache::BaseCache(const BaseCacheParams &p, unsigned blk_size)
 
     if (gcp && !compressor)
         fatal("GCP requires a compression algorithm");
+
+    std::cout << "gcpCounter Constructor" << gcpCounter << std::endl;
 }
 
 BaseCache::~BaseCache()
@@ -1246,6 +1248,32 @@ BaseCache::access(PacketPtr pkt, CacheBlk *&blk, Cycles &lat,
 
     DPRINTF(Cache, "%s for %s %s\n", __func__, pkt->print(),
             blk ? "hit " + blk->print() : "miss");
+
+    // Record block hits and misses
+    if (gcp){
+        if (blk){ // Block is a hit
+            // 1. Check if compressed
+            CompressionBlk* compression_blk = dynamic_cast<CompressionBlk*>(blk)
+            if (compression_blk->isCompressed()) {\
+                // 2. Check if uncompressed can co allocate
+                SuperBlk* super_blk = dynamic_cast<SuperBlk*>(compression_blk->getSectorBlock());
+                if(super_blk->canCoAllocate(compression_blk->getSizeBits())) {
+                    // Penalized Hit
+                    gcpCounter++;
+                    std::cout << "Penalized Hit" << gcpCounter << std::endl;
+                }
+                else {
+                    // Avoided Miss
+                    gcpCounter--;
+                    std::cout << "Avoided Miss" << gcpCounter << std::endl;
+                }
+            }
+} 
+        else {  // Block is a miss
+            // Avoided miss
+        }
+    }
+
 
     if (pkt->req->isCacheMaintenance()) {
         // A cache maintenance operation is always forwarded to the
