@@ -990,11 +990,11 @@ BaseCache::updateCompressionData(CacheBlk *&blk, const uint64_t* data,
     // metadata can be updated.
     Cycles compression_lat = Cycles(0);
     Cycles decompression_lat = Cycles(0);
-    std::size_t compression_size = blkSize;
-    
+    std::size_t compression_size = blkSize*CHAR_BIT;
     CompressedTags* comp_tags = static_cast<CompressedTags*>(tags);
 
-    if(gcp){
+
+    if(gcp&&compressor){
         if(comp_tags->getGcpFactor() > 0){
         const auto comp_data = compressor->compress(data, compression_lat, decompression_lat);
         compression_size = comp_data->getSizeBits();

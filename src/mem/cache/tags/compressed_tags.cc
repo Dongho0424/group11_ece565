@@ -124,16 +124,25 @@ CompressedTags::accessBlock(const PacketPtr pkt, Cycles &lat)
         CompressionBlk* compressed_blk = static_cast<CompressionBlk*>(sub_blk);
         const SuperBlk* super_blk = static_cast<SuperBlk*>(sector_blk);
 
+        const int rest_offset = (compressed_blk -> getSectorOffset())^1;
+        //printf("origin_offset: %d \n", compressed_blk -> getSectorOffset() );
+        //printf("rest_offset: %d \n", rest_offset );
+
+        //CompressionBlk* rest_compressed_blk = static_cast<CompressionBlk*>(super_blk->blks[~(compressed_blk -> getSectorOffset())]);
+        CompressionBlk* rest_compressed_blk = static_cast<CompressionBlk*>(super_blk->blks[rest_offset]);
+        //printf("cancoallocate : %d \n", super_blk->canCoAllocate(rest_compressed_blk->getSizeBits()));
+
+
         if (!compressed_blk->isCompressed()){
             //std::cout << ("unpenalized hit\n");
         }
-        else if (compressed_blk->isCompressed()&&super_blk->canCoAllocate(compressed_blk->getSizeBits())){
+        else if (compressed_blk->isCompressed()&&super_blk->canCoAllocate(rest_compressed_blk->getSizeBits())){
             //std::cout << "penalized hit\n";
             gcp_factor --;
 
-        }else if (compressed_blk->isCompressed()&&!super_blk->canCoAllocate(compressed_blk->getSizeBits())){
+        }else if (compressed_blk->isCompressed()&&!super_blk->canCoAllocate(rest_compressed_blk->getSizeBits())){
             //std::cout << "avoided miss\n";
-            gcp_factor ++;
+            gcp_factor = gcp_factor + 80;
 
         }
     }
@@ -154,12 +163,13 @@ CompressedTags::accessBlock(const PacketPtr pkt, Cycles &lat)
     //miss 나누기
     //cause segmentation fault b/c blk is null ptr so that other blk came from this blk has no data.
     if ( blk == nullptr ){
+        //printf("blk == nullptr: %d\n", blk == nullptr);
         if(searchCompressibleBlk(pkt->getAddr(), pkt->isSecure())){
-            //std::cout << "avodiable miss" << "\n";
-            gcp_factor ++;
+            //std::cout << "avoidable miss" << "\n";
+            gcp_factor = gcp_factor + 80;
         }
     }
-
+    //printf("gcp_factor = %d\n", gcp_factor);
     // The tag lookup latency is the same for a hit or a miss
     lat = lookupLatency;
 
@@ -167,7 +177,7 @@ CompressedTags::accessBlock(const PacketPtr pkt, Cycles &lat)
 }
 
 
-signed int
+int64_t
 CompressedTags::getGcpFactor() const
 {   
     //std::cout << "getgcp: " << gcp_factor << "\n";
@@ -260,7 +270,11 @@ bool
 CompressedTags::searchCompressibleBlk(Addr addr, bool is_secure) const
 {
     // Extract block tag
-    // Addr tag = extractTag(addr);
+    Addr tag = extractTag(addr);
+    
+    // The address can only be mapped to a specific location of a sector
+    // due to sectors being composed of contiguous-address entries
+    const uint64_t offset = extractSectorOffset(addr);
 
     // Find possible entries that may contain the given address
     const std::vector<ReplaceableEntry*> entries =
@@ -270,25 +284,26 @@ CompressedTags::searchCompressibleBlk(Addr addr, bool is_secure) const
     for (const auto& location : entries) {
 
         SuperBlk* super_blk = static_cast<SuperBlk*>(location);
-
-        const uint64_t offset = extractSectorOffset(addr);
         CompressionBlk* compressed_blk = static_cast<CompressionBlk*>(super_blk->blks[offset]);
 
-
-        if((super_blk->getNumValid())==1){
-            if(!super_blk -> canCoAllocate(compressed_blk->getSizeBits())){
+        if(super_blk->matchTag(tag, is_secure)){
+            if((super_blk->blks[offset^1])->isValid()){
                 if(!super_blk->isCompressed()){
-                    if( compressed_blk->getSizeBits() <= super_blk->getBlkSize()*CHAR_BIT / 2){
-                        return true;
+                    if((super_blk->getNumValid())==1){
+                        if(!super_blk -> canCoAllocate(compressed_blk->getSizeBits())){
+                            if( compressed_blk->getSizeBits() <= super_blk->getBlkSize()*CHAR_BIT / 2){
+                                return true; 
+                            }
+                        }
                     }
                 }
             }
         }
     }
-    // Did not find block
+        // Did not find block
 
     return false;
 
-}
+    }
 
 } // namespace gem5

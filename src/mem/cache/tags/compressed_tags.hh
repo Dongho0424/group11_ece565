@@ -111,7 +111,7 @@ class CompressedTags : public SectorTags
     /*
     * @ return gcpfactor
     */
-    signed int getGcpFactor() const;
+    int64_t getGcpFactor() const;
 
     /**
      * Find replacement victim based on address. Checks if data can be co-
