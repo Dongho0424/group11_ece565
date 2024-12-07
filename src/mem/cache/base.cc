@@ -1655,12 +1655,16 @@ BaseCache::allocateBlock(const PacketPtr pkt, PacketList &writebacks)
     // compressor is used, the compression/decompression methods are called to
     // calculate the amount of extra cycles needed to read or write compressed
     // blocks.
+    
     if (gcp){
         if (gcpCounter > 0 && compressor && pkt->hasData()) {
             const auto comp_data = compressor->compress(
                 pkt->getConstPtr<uint64_t>(), compression_lat, decompression_lat);
             blk_size_bits = comp_data->getSizeBits();
+            print()
         }
+        gcpCounter++;
+        std::cout << "GCP Counter: " << gcpCounter << std::endl;
     }
     else {
         if (compressor && pkt->hasData()) {
@@ -1668,6 +1672,8 @@ BaseCache::allocateBlock(const PacketPtr pkt, PacketList &writebacks)
                 pkt->getConstPtr<uint64_t>(), compression_lat, decompression_lat);
             blk_size_bits = comp_data->getSizeBits();
         }
+        gcpCounter--;
+        std::cout << "GCP Counter: " << gcpCounter << std::endl;
     }
 
     // Find replacement victim
@@ -1687,8 +1693,14 @@ BaseCache::allocateBlock(const PacketPtr pkt, PacketList &writebacks)
         return nullptr;
     }
 
+    std::cout << "PRINT SUPERBLOCK BEFORE INSERT" << std::endl;
+    SuperBlk* superblock = static_cast<SuperBlk*>((dynamic_cast<CompressionBlk>victim)->getSectorBlock());
+    superblock->print();
     // Insert new block at victimized entry
     tags->insertBlock(pkt, victim);
+    std::cout << "PRINT SUPERBLOCK AFTER INSERT" << std::endl;
+    superblock->print();
+    std::cout << " " << std::endl;
 
     // If using a compressor, set compression data. This must be done after
     // insertion, as the compression bit may be set.
