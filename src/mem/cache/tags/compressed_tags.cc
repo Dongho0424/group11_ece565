@@ -45,7 +45,7 @@ namespace gem5
 {
 
 CompressedTags::CompressedTags(const Params &p)
-    : SectorTags(p)
+    : SectorTags(p), gcp_factor(0)
 {
 }
 
@@ -105,13 +105,7 @@ CacheBlk*
 CompressedTags::accessBlock(const PacketPtr pkt, Cycles &lat)
 {
     CacheBlk* blk = findBlock(pkt->getAddr(), pkt->isSecure());
-    SectorSubBlk* sub_blk = static_cast<SectorSubBlk*>(blk);
-    SectorBlk* sector_blk = sub_blk->getSectorBlock();
-    CompressionBlk* compressed_blk = static_cast<CompressionBlk*>(sub_blk);
-    const SuperBlk* super_blk = static_cast<SuperBlk*>(sector_blk);
-
-    signed int gcp_factor = 0;
-
+    
     // Access all tags in parallel, hence one in each way.  The data side
     // either accesses all blocks in parallel, or one block sequentially on
     // a hit.  Sequential access with a miss doesn't access data.
@@ -124,38 +118,45 @@ CompressedTags::accessBlock(const PacketPtr pkt, Cycles &lat)
         stats.dataAccesses += allocAssoc*numBlocksPerSector;
     }
 
-    // If a cache hit
-    //여기서 cache hit을 나누면 될듯
-    if (blk != nullptr){
+    if(blk != nullptr){
+        SectorSubBlk* sub_blk = static_cast<SectorSubBlk*>(blk);
+        SectorBlk* sector_blk = sub_blk->getSectorBlock();
+        CompressionBlk* compressed_blk = static_cast<CompressionBlk*>(sub_blk);
+        const SuperBlk* super_blk = static_cast<SuperBlk*>(sector_blk);
 
         if (!compressed_blk->isCompressed()){
-            std::cout << ("unpenalized hit");
+            //std::cout << ("unpenalized hit\n");
         }
         else if (compressed_blk->isCompressed()&&super_blk->canCoAllocate(compressed_blk->getSizeBits())){
-            gcp_factor ++;
-            std::cout << "penalized hit";
-        }else if (compressed_blk->isCompressed()&&!super_blk->canCoAllocate(compressed_blk->getSizeBits())){
-            std::cout << "avoided miss";
+            //std::cout << "penalized hit\n";
             gcp_factor --;
+
+        }else if (compressed_blk->isCompressed()&&!super_blk->canCoAllocate(compressed_blk->getSizeBits())){
+            //std::cout << "avoided miss\n";
+            gcp_factor ++;
+
         }
     }
+    // If a cache hit
+    //여기서 cache hit을 나누면 될듯
+    
     if (blk != nullptr) {
         // Update number of references to accessed block
         blk->increaseRefCount();
-
+        
         // Get block's sector
         SectorSubBlk* sub_blk = static_cast<SectorSubBlk*>(blk);
         const SectorBlk* sector_blk = sub_blk->getSectorBlock();
-
         // Update replacement data of accessed block, which is shared with
         // the whole sector it belongs to
         replacementPolicy->touch(sector_blk->replacementData, pkt);
     }
     //miss 나누기
+    //cause segmentation fault b/c blk is null ptr so that other blk came from this blk has no data.
     if ( blk == nullptr ){
-        if ((compressed_blk->getSizeBits() <= (super_blk->getBlkSize() * CHAR_BIT) / super_blk->getCompressionFactor())){
-            gcp_factor --;
-            std::cout << "avodiable miss";
+        if(searchCompressibleBlk(pkt->getAddr(), pkt->isSecure())){
+            //std::cout << "avodiable miss" << "\n";
+            gcp_factor ++;
         }
     }
 
@@ -165,11 +166,14 @@ CompressedTags::accessBlock(const PacketPtr pkt, Cycles &lat)
     return blk;
 }
 
-int
+
+signed int
 CompressedTags::getGcpFactor() const
-{
+{   
+    //std::cout << "getgcp: " << gcp_factor << "\n";
     return gcp_factor;
 }
+
 
 CacheBlk*
 CompressedTags::findVictim(Addr addr, const bool is_secure,
@@ -250,6 +254,41 @@ CompressedTags::anyBlk(std::function<bool(CacheBlk &)> visitor)
         }
     }
     return false;
+}
+
+bool
+CompressedTags::searchCompressibleBlk(Addr addr, bool is_secure) const
+{
+    // Extract block tag
+    // Addr tag = extractTag(addr);
+
+    // Find possible entries that may contain the given address
+    const std::vector<ReplaceableEntry*> entries =
+        indexingPolicy->getPossibleEntries(addr);
+
+    // Search for block
+    for (const auto& location : entries) {
+
+        SuperBlk* super_blk = static_cast<SuperBlk*>(location);
+
+        const uint64_t offset = extractSectorOffset(addr);
+        CompressionBlk* compressed_blk = static_cast<CompressionBlk*>(super_blk->blks[offset]);
+
+
+        if((super_blk->getNumValid())==1){
+            if(!super_blk -> canCoAllocate(compressed_blk->getSizeBits())){
+                if(!super_blk->isCompressed()){
+                    if( compressed_blk->getSizeBits() <= super_blk->getBlkSize()*CHAR_BIT / 2){
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+    // Did not find block
+
+    return false;
+
 }
 
 } // namespace gem5

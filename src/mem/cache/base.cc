@@ -990,9 +990,23 @@ BaseCache::updateCompressionData(CacheBlk *&blk, const uint64_t* data,
     // metadata can be updated.
     Cycles compression_lat = Cycles(0);
     Cycles decompression_lat = Cycles(0);
-    const auto comp_data =
-        compressor->compress(data, compression_lat, decompression_lat);
-    std::size_t compression_size = comp_data->getSizeBits();
+    std::size_t compression_size = blkSize;
+    
+    CompressedTags* comp_tags = static_cast<CompressedTags*>(tags);
+
+    if(gcp){
+        if(comp_tags->getGcpFactor() > 0){
+        const auto comp_data = compressor->compress(data, compression_lat, decompression_lat);
+        compression_size = comp_data->getSizeBits();
+        }
+    }
+    else{
+        const auto comp_data = compressor->compress(data, compression_lat, decompression_lat);
+        compression_size = comp_data->getSizeBits();
+    }
+    //printf("update - gcp: %d, gcpfactor: %d, compression size: %zu \n", gcp, comp_tags->getGcpFactor() ,compression_size);
+
+    
 
     // Get previous compressed size
     CompressionBlk* compression_blk = static_cast<CompressionBlk*>(blk);
@@ -1632,13 +1646,17 @@ BaseCache::allocateBlock(const PacketPtr pkt, PacketList &writebacks)
 
     CompressedTags* comp_tags = static_cast<CompressedTags*>(tags);
 
-    std::cout << comp_tags->getGcpFactor();
-
     if (gcp){
         if (comp_tags->getGcpFactor() > 0 && compressor && pkt->hasData()) {
+            //printf("gcpfactor has to 0>: %d \n", comp_tags->getGcpFactor());
             const auto comp_data = compressor->compress(
                 pkt->getConstPtr<uint64_t>(), compression_lat, decompression_lat);
             blk_size_bits = comp_data->getSizeBits();
+            //printf("compressed size: %zu \n", blk_size_bits);
+        }
+        else{
+            //printf("gcpfactor has to 0<: %d \n", comp_tags->getGcpFactor());
+            //printf("uncompressed size: %zu\n", blk_size_bits);
         }
     }
     else {

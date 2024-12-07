@@ -356,7 +356,7 @@ class BaseCache : public ClockedObject
     const bool gcp;
 
     /*GCP Counter*/
-    //int gcpCounter;
+    int gcpCounter;
 
     /** Prefetcher */
     prefetch::Base *prefetcher;

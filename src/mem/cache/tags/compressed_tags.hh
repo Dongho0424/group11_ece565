@@ -75,7 +75,7 @@ class CompressedTags : public SectorTags
     /** The cache superblocks. */
     std::vector<SuperBlk> superBlks;
     /*gcp factor*/
-    int gcp_factor;
+    signed int gcp_factor;
 
   public:
     /** Convenience typedef. */
@@ -111,7 +111,7 @@ class CompressedTags : public SectorTags
     /*
     * @ return gcpfactor
     */
-    int getGcpFactor() const;
+    signed int getGcpFactor() const;
 
     /**
      * Find replacement victim based on address. Checks if data can be co-
@@ -147,7 +147,18 @@ class CompressedTags : public SectorTags
      * @param visitor Visitor to call on each block.
      */
     bool anyBlk(std::function<bool(CacheBlk &)> visitor) override;
+
+    /**
+     * Finds the block in the cache without touching it.
+     *
+     * @param addr The address to look for.
+     * @param is_secure True if the target memory space is secure.
+     * @return bool to the cache block.
+     */
+    bool searchCompressibleBlk(Addr addr, bool is_secure) const;
+
 };
+
 
 } // namespace gem5
 
