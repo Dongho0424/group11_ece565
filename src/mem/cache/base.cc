@@ -1696,12 +1696,14 @@ BaseCache::allocateBlock(const PacketPtr pkt, PacketList &writebacks)
     std::cout << (gcpCounter ? "1, COMPRESS" : "0, DECOMPRESS") << std::endl;
     CompressionBlk* compression_blk = dynamic_cast<CompressionBlk*>(victim);
     SuperBlk* superblock = static_cast<SuperBlk*>(compression_blk->getSectorBlock());
-    // superblock->print();
+    std::cout << "Superblock CF:" << superblock-> getCompressionFactor();
+    std::cout << "NumValid:" << superblock->getNumValid() << std::endl;
     // Insert new block at victimized entry
     tags->insertBlock(pkt, victim);
-    // std::cout << "PRINT SUPERBLOCK AFTER INSERT" << std::endl;
-    // superblock->print();
-    // std::cout << " " << std::endl;
+    std::cout << "PRINT SUPERBLOCK AFTER INSERT" << std::endl;
+    std::cout << "Superblock CF:" << superblock-> getCompressionFactor();
+    std::cout << "NumValid:" << superblock->getNumValid() << std::endl;
+    std::cout << " " << std::endl;
 
     // If using a compressor, set compression data. This must be done after
     // insertion, as the compression bit may be set.
