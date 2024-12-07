@@ -34,3 +34,5 @@ configs/dram/lowp_sweep.cfg
 .pyenv
 m5out*
 .vscode
+.gitignore
+experiments.sh

@@ -10,10 +10,10 @@ BENCHMARKS=("astar")
 for BENCHMARK in "${BENCHMARKS[@]}"
 do
     # Run with compression
-    ./build/ECE565-ARM/gem5.opt configs/project/baseline.py -b $BENCHMARK --cpu-type=MinorCPU --maxinsts=1000000 --l1d_size=64kB --l1i_size=64kB --l1d_assoc=2 --l1i_assoc=2 --caches --l2cache --l2_size=4MB --mem-size=4GB --compression
-    mv m5out m5out_${BENCHMARK}_TRUE
+    ./build/ECE565-ARM/gem5.opt configs/project/baseline.py -b $BENCHMARK --cpu-type=MinorCPU --maxinsts=1000000 --l1d_size=64kB --l1i_size=64kB --l1d_assoc=2 --l1i_assoc=2 --caches --l2cache --l2_size=4MB --mem-size=4GB --compression --gcp
+    # mv m5out m5out_${BENCHMARK}_TRUE
 
     # Run without compression
-    ./build/ECE565-ARM/gem5.opt configs/project/baseline.py -b $BENCHMARK --cpu-type=MinorCPU --maxinsts=1000000 --l1d_size=64kB --l1i_size=64kB --l1d_assoc=2 --l1i_assoc=2 --caches --l2cache --l2_size=4MB --mem-size=4GB 
-    mv m5out m5out_${BENCHMARK}_FALSE
+    # ./build/ECE565-ARM/gem5.opt configs/project/baseline.py -b $BENCHMARK --cpu-type=MinorCPU --maxinsts=1000000 --l1d_size=64kB --l1i_size=64kB --l1d_assoc=2 --l1i_assoc=2 --caches --l2cache --l2_size=4MB --mem-size=4GB 
+    # mv m5out m5out_${BENCHMARK}_FALSE
 done

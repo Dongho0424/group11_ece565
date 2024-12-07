@@ -139,8 +139,6 @@ BaseCache::BaseCache(const BaseCacheParams &p, unsigned blk_size)
 
     if (gcp && !compressor)
         fatal("GCP requires a compression algorithm");
-
-    std::cout << "gcpCounter Constructor" << gcpCounter << std::endl;
 }
 
 BaseCache::~BaseCache()
@@ -1249,30 +1247,30 @@ BaseCache::access(PacketPtr pkt, CacheBlk *&blk, Cycles &lat,
     DPRINTF(Cache, "%s for %s %s\n", __func__, pkt->print(),
             blk ? "hit " + blk->print() : "miss");
 
-    // Record block hits and misses
-    if (gcp){
-        if (blk){ // Block is a hit
-            // 1. Check if compressed
-            CompressionBlk* compression_blk = dynamic_cast<CompressionBlk*>(blk);
-            if (compression_blk->isCompressed()) {
-                // 2. Check if uncompressed can co allocate
-                SuperBlk* super_blk = dynamic_cast<SuperBlk*>(compression_blk->getSectorBlock());
-                if(super_blk->canCoAllocate(compression_blk->getSizeBits())) {
-                    // Penalized Hit
-                    gcpCounter++;
-                    std::cout << "Penalized Hit" << gcpCounter << std::endl;
-                }
-                else {
-                    // Avoided Miss
-                    gcpCounter--;
-                    std::cout << "Avoided Miss" << gcpCounter << std::endl;
-                }
-            }
-        } 
-        else {  // Block is a miss
-            // Avoided miss
-        }
-    }
+    // // Record block hits and misses
+    // if (gcp){
+    //     if (blk){ // Block is a hit
+    //         // 1. Check if compressed
+    //         CompressionBlk* compression_blk = dynamic_cast<CompressionBlk*>(blk);
+    //         if (compression_blk->isCompressed()) {
+    //             // 2. Check if uncompressed can co allocate
+    //             SuperBlk* super_blk = dynamic_cast<SuperBlk*>(compression_blk->getSectorBlock());
+    //             if(super_blk->canCoAllocate(compression_blk->getSizeBits())) {
+    //                 // Penalized Hit
+    //                 gcpCounter++;
+    //                 std::cout << "Penalized Hit" << gcpCounter << std::endl;
+    //             }
+    //             else {
+    //                 // Avoided Miss
+    //                 gcpCounter--;
+    //                 std::cout << "Avoided Miss" << gcpCounter << std::endl;
+    //             }
+    //         }
+    //     } 
+    //     else {  // Block is a miss
+    //         // Avoided miss
+    //     }
+    // }
 
 
     if (pkt->req->isCacheMaintenance()) {
@@ -1661,10 +1659,10 @@ BaseCache::allocateBlock(const PacketPtr pkt, PacketList &writebacks)
             const auto comp_data = compressor->compress(
                 pkt->getConstPtr<uint64_t>(), compression_lat, decompression_lat);
             blk_size_bits = comp_data->getSizeBits();
-            print()
         }
-        gcpCounter++;
         std::cout << "GCP Counter: " << gcpCounter << std::endl;
+        gcpCounter--;
+        std::cout << "GCP Counter Subtract: " << gcpCounter << std::endl;
     }
     else {
         if (compressor && pkt->hasData()) {
@@ -1672,8 +1670,9 @@ BaseCache::allocateBlock(const PacketPtr pkt, PacketList &writebacks)
                 pkt->getConstPtr<uint64_t>(), compression_lat, decompression_lat);
             blk_size_bits = comp_data->getSizeBits();
         }
-        gcpCounter--;
         std::cout << "GCP Counter: " << gcpCounter << std::endl;
+        gcpCounter++;
+        std::cout << "GCP Counter Add: " << gcpCounter << std::endl;
     }
 
     // Find replacement victim
@@ -1694,13 +1693,15 @@ BaseCache::allocateBlock(const PacketPtr pkt, PacketList &writebacks)
     }
 
     std::cout << "PRINT SUPERBLOCK BEFORE INSERT" << std::endl;
-    SuperBlk* superblock = static_cast<SuperBlk*>((dynamic_cast<CompressionBlk>victim)->getSectorBlock());
-    superblock->print();
+    std::cout << (gcpCounter ? "1, COMPRESS" : "0, DECOMPRESS") << std::endl;
+    CompressionBlk* compression_blk = dynamic_cast<CompressionBlk*>(victim);
+    SuperBlk* superblock = static_cast<SuperBlk*>(compression_blk->getSectorBlock());
+    // superblock->print();
     // Insert new block at victimized entry
     tags->insertBlock(pkt, victim);
-    std::cout << "PRINT SUPERBLOCK AFTER INSERT" << std::endl;
-    superblock->print();
-    std::cout << " " << std::endl;
+    // std::cout << "PRINT SUPERBLOCK AFTER INSERT" << std::endl;
+    // superblock->print();
+    // std::cout << " " << std::endl;
 
     // If using a compressor, set compression data. This must be done after
     // insertion, as the compression bit may be set.
