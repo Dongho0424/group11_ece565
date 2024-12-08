@@ -136,7 +136,7 @@ BaseCache::BaseCache(const BaseCacheParams &p, unsigned blk_size)
     warn_if(!compressor && dynamic_cast<CompressedTags*>(tags),
         "Compressed cache %s does not have a compression algorithm", name());
     if (compressor)
-        compressor->setCache(this);
+        compressor->setCache(this); 
     if (gcp && !compressor)
         fatal("GCP requires a compression algorithm");
 }

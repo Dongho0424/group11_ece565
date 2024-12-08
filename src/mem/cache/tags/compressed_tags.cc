@@ -284,10 +284,10 @@ CompressedTags::searchCompressibleBlk(Addr addr, bool is_secure) const
     for (const auto& location : entries) {
 
         SuperBlk* super_blk = static_cast<SuperBlk*>(location);
-        CompressionBlk* compressed_blk = static_cast<CompressionBlk*>(super_blk->blks[offset]);
+        CompressionBlk* compressed_blk = static_cast<CompressionBlk*>(super_blk->blks[offset^1]);
 
         if(super_blk->matchTag(tag, is_secure)){
-            if((super_blk->blks[offset^1])->isValid()){
+            if(compressed_blk->isValid()){
                 if(!super_blk->isCompressed()){
                     if((super_blk->getNumValid())==1){
                         if(!super_blk -> canCoAllocate(compressed_blk->getSizeBits())){
