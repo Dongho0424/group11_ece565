@@ -84,7 +84,6 @@ BaseCache::BaseCache(const BaseCacheParams &p, unsigned blk_size)
       writeBuffer("write buffer", p.write_buffers, p.mshrs, p.name),
       tags(p.tags),
       compressor(p.compressor),
-      //
       gcp(p.gcp),
       //gcpCounter(0),
       prefetcher(p.prefetcher),
@@ -1645,18 +1644,15 @@ BaseCache::allocateBlock(const PacketPtr pkt, PacketList &writebacks)
     //  여기에서 껐다 키면 될듯
 
     CompressedTags* comp_tags = static_cast<CompressedTags*>(tags);
-
     if (gcp){
-        if (comp_tags->getGcpFactor() > 0 && compressor && pkt->hasData()) {
-            //printf("gcpfactor has to 0>: %d \n", comp_tags->getGcpFactor());
+        if (comp_tags->getGcpFactor()>=0 && compressor && pkt->hasData()) {
+            //printf("gcpfactor has to 0>: %d \n", comp_tags->getGcpFactor()>0);
             const auto comp_data = compressor->compress(
                 pkt->getConstPtr<uint64_t>(), compression_lat, decompression_lat);
             blk_size_bits = comp_data->getSizeBits();
             //printf("compressed size: %zu \n", blk_size_bits);
         }
         else{
-            //printf("gcpfactor has to 0<: %d \n", comp_tags->getGcpFactor());
-            //printf("uncompressed size: %zu\n", blk_size_bits);
         }
     }
     else {

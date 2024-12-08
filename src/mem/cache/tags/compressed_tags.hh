@@ -75,7 +75,7 @@ class CompressedTags : public SectorTags
     /** The cache superblocks. */
     std::vector<SuperBlk> superBlks;
     /*gcp factor*/
-    signed int gcp_factor;
+    int gcp_factor;
 
   public:
     /** Convenience typedef. */
@@ -111,7 +111,7 @@ class CompressedTags : public SectorTags
     /*
     * @ return gcpfactor
     */
-    int64_t getGcpFactor() const;
+    int getGcpFactor() const;
 
     /**
      * Find replacement victim based on address. Checks if data can be co-

@@ -117,6 +117,8 @@ CompressedTags::accessBlock(const PacketPtr pkt, Cycles &lat)
     } else {
         stats.dataAccesses += allocAssoc*numBlocksPerSector;
     }
+    
+    //printf("blk = nullptr: %d \n", blk==nullptr);
 
     if(blk != nullptr){
         SectorSubBlk* sub_blk = static_cast<SectorSubBlk*>(blk);
@@ -131,6 +133,9 @@ CompressedTags::accessBlock(const PacketPtr pkt, Cycles &lat)
         //CompressionBlk* rest_compressed_blk = static_cast<CompressionBlk*>(super_blk->blks[~(compressed_blk -> getSectorOffset())]);
         CompressionBlk* rest_compressed_blk = static_cast<CompressionBlk*>(super_blk->blks[rest_offset]);
         //printf("cancoallocate : %d \n", super_blk->canCoAllocate(rest_compressed_blk->getSizeBits()));
+        //printf("rest compressed blk size: %zu\n", rest_compressed_blk->getSizeBits());
+        //printf("compressed blk is compressed : %d \n", compressed_blk->isCompressed() );
+        //printf("superblk is can allocate : %d \n", super_blk->canCoAllocate(rest_compressed_blk->getSizeBits()));
 
 
         if (!compressed_blk->isCompressed()){
@@ -138,11 +143,15 @@ CompressedTags::accessBlock(const PacketPtr pkt, Cycles &lat)
         }
         else if (compressed_blk->isCompressed()&&super_blk->canCoAllocate(rest_compressed_blk->getSizeBits())){
             //std::cout << "penalized hit\n";
+            //std::cout << "penalized hit: " << gcp_factor << "\n";
             gcp_factor --;
 
-        }else if (compressed_blk->isCompressed()&&!super_blk->canCoAllocate(rest_compressed_blk->getSizeBits())){
+        }
+        else if (compressed_blk->isCompressed()&&!super_blk->canCoAllocate(rest_compressed_blk->getSizeBits())){
             //std::cout << "avoided miss\n";
             gcp_factor = gcp_factor + 80;
+            //std::cout << "avoided miss: " << gcp_factor << "\n";
+
 
         }
     }
@@ -162,7 +171,7 @@ CompressedTags::accessBlock(const PacketPtr pkt, Cycles &lat)
     }
     //miss 나누기
     //cause segmentation fault b/c blk is null ptr so that other blk came from this blk has no data.
-    if ( blk == nullptr ){
+    if (blk==nullptr){
         //printf("blk == nullptr: %d\n", blk == nullptr);
         if(searchCompressibleBlk(pkt->getAddr(), pkt->isSecure())){
             //std::cout << "avoidable miss" << "\n";
@@ -177,7 +186,7 @@ CompressedTags::accessBlock(const PacketPtr pkt, Cycles &lat)
 }
 
 
-int64_t
+int
 CompressedTags::getGcpFactor() const
 {   
     //std::cout << "getgcp: " << gcp_factor << "\n";
@@ -290,7 +299,6 @@ CompressedTags::searchCompressibleBlk(Addr addr, bool is_secure) const
             if(compressed_blk->isValid()){
                 if(!super_blk->isCompressed()){
                     if((super_blk->getNumValid())==1){
-                        if(!super_blk -> canCoAllocate(compressed_blk->getSizeBits())){
                             if( compressed_blk->getSizeBits() <= super_blk->getBlkSize()*CHAR_BIT / 2){
                                 return true; 
                             }
@@ -299,7 +307,6 @@ CompressedTags::searchCompressibleBlk(Addr addr, bool is_secure) const
                 }
             }
         }
-    }
         // Did not find block
 
     return false;

@@ -1559,7 +1559,7 @@
                 "comp_chunks_per_cycle": 8,
                 "comp_extra_latency": 1,
                 "decomp_chunks_per_cycle": 4,
-                "decomp_extra_latency": 1,
+                "decomp_extra_latency": 5,
                 "dictionary_size": 1,
                 "eventq_index": 0,
                 "size_threshold_percentage": 50,
@@ -1600,7 +1600,7 @@
             },
             "response_latency": 20,
             "sequential_access": true,
-            "size": 2097152,
+            "size": 4194304,
             "system": "system",
             "tag_latency": 20,
             "tags": {
@@ -1621,7 +1621,7 @@
                     "assoc": 8,
                     "entry_size": 128,
                     "eventq_index": 0,
-                    "size": 4194304
+                    "size": 8388608
                 },
                 "max_compression_ratio": 2,
                 "num_blocks_per_sector": 2,
@@ -1641,7 +1641,7 @@
                 },
                 "replacement_policy": "system.l2.replacement_policy",
                 "sequential_access": true,
-                "size": 4194304,
+                "size": 8388608,
                 "system": "system",
                 "tag_latency": 20,
                 "warmup_percentage": 0
