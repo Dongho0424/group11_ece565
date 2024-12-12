@@ -71,7 +71,10 @@ def _get_cache_opts(level, options):
     if level == "l2":
         if options.l2_compressor:
             opts['compressor'] = FPC()
-            opts['tags'] = CompressedTags()
+            opts['tags'] = CompressedTags(
+                gcp_inc=options.gcp_inc,
+                gcp_dec=options.gcp_dec
+            )
             opts['sequential_access'] = True
         if options.gcp:
             opts['gcp'] = True

@@ -76,6 +76,8 @@ class CompressedTags : public SectorTags
     std::vector<SuperBlk> superBlks;
     /*gcp factor*/
     int gcp_factor;
+    int gcp_inc;
+    int gcp_dec;
 
   public:
     /** Convenience typedef. */

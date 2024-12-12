@@ -118,6 +118,9 @@ class CompressedTags(SectorTags):
     # the cache size by the compression ratio
     size = Parent.size * Self.max_compression_ratio
 
+    gcp_inc = Param.Int(1,"gcp dec factor")
+    gcp_dec = Param.Int(1,"gcp inc factor")
+
 class FALRU(BaseTags):
     type = 'FALRU'
     cxx_header = "mem/cache/tags/fa_lru.hh"

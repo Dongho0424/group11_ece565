@@ -40,13 +40,17 @@
 #include "mem/cache/tags/indexing_policies/base.hh"
 #include "mem/packet.hh"
 #include "params/CompressedTags.hh"
+#include "sim/sim_exit.hh"
 
 namespace gem5
 {
 
 CompressedTags::CompressedTags(const Params &p)
-    : SectorTags(p), gcp_factor(0)
-{
+    : SectorTags(p), 
+    gcp_factor(0), gcp_dec(p.gcp_dec), gcp_inc(p.gcp_inc)
+{   
+    printf("Initialize Compressed Tags!");
+    printf("gcp_dec: %d, gcp_inc: %d", gcp_dec, gcp_inc);
 }
 
 void
@@ -127,36 +131,23 @@ CompressedTags::accessBlock(const PacketPtr pkt, Cycles &lat)
         const SuperBlk* super_blk = static_cast<SuperBlk*>(sector_blk);
 
         const int rest_offset = (compressed_blk -> getSectorOffset())^1;
-        //printf("origin_offset: %d \n", compressed_blk -> getSectorOffset() );
-        //printf("rest_offset: %d \n", rest_offset );
 
-        //CompressionBlk* rest_compressed_blk = static_cast<CompressionBlk*>(super_blk->blks[~(compressed_blk -> getSectorOffset())]);
         CompressionBlk* rest_compressed_blk = static_cast<CompressionBlk*>(super_blk->blks[rest_offset]);
-        //printf("cancoallocate : %d \n", super_blk->canCoAllocate(rest_compressed_blk->getSizeBits()));
-        //printf("rest compressed blk size: %zu\n", rest_compressed_blk->getSizeBits());
-        //printf("compressed blk is compressed : %d \n", compressed_blk->isCompressed() );
-        //printf("superblk is can allocate : %d \n", super_blk->canCoAllocate(rest_compressed_blk->getSizeBits()));
 
-
+        // Hit
         if (!compressed_blk->isCompressed()){
-            //std::cout << ("unpenalized hit\n");
+            // printf("[%s], Unpenalized Hit, curTick: %lu \n", __func__, curTick());
         }
         else if (compressed_blk->isCompressed()&&super_blk->canCoAllocate(rest_compressed_blk->getSizeBits())){
-            //std::cout << "penalized hit\n";
-            //std::cout << "penalized hit: " << gcp_factor << "\n";
-            gcp_factor --;
+            gcp_factor -= gcp_dec;
+            printf("[%s], Penalized Hit, gcp_factor: %d, curTick: %lu \n", __func__, gcp_factor, curTick());
 
         }
         else if (compressed_blk->isCompressed()&&!super_blk->canCoAllocate(rest_compressed_blk->getSizeBits())){
-            //std::cout << "avoided miss\n";
-            gcp_factor = gcp_factor + 80;
-            //std::cout << "avoided miss: " << gcp_factor << "\n";
-
-
+            gcp_factor += gcp_inc;
+            printf("[%s], Avoided Miss, gcp_factor: %d, curTick: %lu \n", __func__, gcp_factor, curTick());
         }
     }
-    // If a cache hit
-    //여기서 cache hit을 나누면 될듯
     
     if (blk != nullptr) {
         // Update number of references to accessed block
@@ -169,13 +160,15 @@ CompressedTags::accessBlock(const PacketPtr pkt, Cycles &lat)
         // the whole sector it belongs to
         replacementPolicy->touch(sector_blk->replacementData, pkt);
     }
-    //miss 나누기
+
     //cause segmentation fault b/c blk is null ptr so that other blk came from this blk has no data.
-    if (blk==nullptr){
-        //printf("blk == nullptr: %d\n", blk == nullptr);
-        if(searchCompressibleBlk(pkt->getAddr(), pkt->isSecure())){
-            //std::cout << "avoidable miss" << "\n";
-            gcp_factor = gcp_factor + 80;
+    // Miss
+    if (blk==nullptr) {
+        // find avoidable miss
+        if (searchCompressibleBlk(pkt->getAddr(), pkt->isSecure())){
+            // std::cout << "avoidable miss" << "\n";
+            gcp_factor += gcp_inc;
+            printf("[%s], Avoidable Miss, gcp_factor: %d, curTick: %lu \n", __func__, gcp_factor, curTick());
         }
     }
     //printf("gcp_factor = %d\n", gcp_factor);

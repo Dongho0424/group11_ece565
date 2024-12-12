@@ -989,23 +989,18 @@ BaseCache::updateCompressionData(CacheBlk *&blk, const uint64_t* data,
     // metadata can be updated.
     Cycles compression_lat = Cycles(0);
     Cycles decompression_lat = Cycles(0);
-    std::size_t compression_size = blkSize*CHAR_BIT;
     CompressedTags* comp_tags = static_cast<CompressedTags*>(tags);
+    std::size_t compression_size = blkSize * CHAR_BIT;
 
-
-    if(gcp&&compressor){
-        if(comp_tags->getGcpFactor() > 0){
-        const auto comp_data = compressor->compress(data, compression_lat, decompression_lat);
-        compression_size = comp_data->getSizeBits();
+    if (gcp) {
+        if (comp_tags->getGcpFactor() >= 0) {
+            const auto comp_data = compressor->compress(data, compression_lat, decompression_lat);
+            compression_size = comp_data->getSizeBits();
+            printf("[%s], Compressing blk, compressed size: %d Byte, gcp_factor: %d, curTick: %lu \n", __func__, compression_size / 8, comp_tags->getGcpFactor(), curTick());
         }
+    } else if (!compressor) {
+        fatal("fatal, no compressor");
     }
-    else{
-        const auto comp_data = compressor->compress(data, compression_lat, decompression_lat);
-        compression_size = comp_data->getSizeBits();
-    }
-    //printf("update - gcp: %d, gcpfactor: %d, compression size: %zu \n", gcp, comp_tags->getGcpFactor() ,compression_size);
-
-    
 
     // Get previous compressed size
     CompressionBlk* compression_blk = static_cast<CompressionBlk*>(blk);
@@ -1644,13 +1639,13 @@ BaseCache::allocateBlock(const PacketPtr pkt, PacketList &writebacks)
     //  여기에서 껐다 키면 될듯
 
     CompressedTags* comp_tags = static_cast<CompressedTags*>(tags);
-    if (gcp){
+    if (gcp) {
         if (comp_tags->getGcpFactor()>=0 && compressor && pkt->hasData()) {
-            //printf("gcpfactor has to 0>: %d \n", comp_tags->getGcpFactor()>0);
             const auto comp_data = compressor->compress(
                 pkt->getConstPtr<uint64_t>(), compression_lat, decompression_lat);
             blk_size_bits = comp_data->getSizeBits();
-            //printf("compressed size: %zu \n", blk_size_bits);
+            // printf("compressed size: %zu \n", blk_size_bits);
+            printf("[%s], Compressing blk, compressed size: %d Byte, gcp_factor: %d, curTick: %lu \n", __func__, blk_size_bits / 8, comp_tags->getGcpFactor(), curTick());
         }
         else{
         }

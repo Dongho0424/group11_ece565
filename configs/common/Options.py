@@ -155,6 +155,8 @@ def addNoISAOptions(parser):
     parser.add_argument("--cacheline_size", type=int, default=64)
     parser.add_argument("--l2_compressor", action="store_true")
     parser.add_argument("--gcp", action="store_true")
+    parser.add_argument("--gcp_inc", type=int, default=1)
+    parser.add_argument("--gcp_dec", type=int, default=1)
 
 
     # Enable Ruby
